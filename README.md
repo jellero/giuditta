@@ -1,78 +1,99 @@
-# Giuditta Teresa — sito e negozio online
+# Giuditta Teresa — sito e negozio online (PHP)
 
-Sito statico + un'unica funzione serverless che crea il pagamento su **Stripe Checkout**.
-Niente Shopify, niente database, niente dipendenze npm.
+Sito in **PHP semplice**, senza database e senza Shopify. Funziona su qualsiasi hosting
+con PHP 7.4 o superiore (Aruba, Register, SiteGround…), anche dentro una sottocartella.
+I pagamenti passano da **Stripe Checkout**.
 
 ```
-catalog.json                 prodotti, prezzi, spedizione  ← si modifica qui
-src/assets/                  style.css, cart.js
-src/img/                     fotografie
-tools/build.py               genera il sito in public/
-public/                      sito generato (da pubblicare, non modificare a mano)
-netlify/functions/checkout.mjs   POST /api/checkout → sessione Stripe
-netlify/shared/order.mjs         validazione carrello e prezzi (lato server)
-netlify.toml                 configurazione + redirect 301 dai vecchi indirizzi
+demo/                         ← tutto il sito: si carica così com'è sull'hosting
+  index.php, shop.php, prodotto.php?p=…, consegna-in-friuli.php, ristorazione.php,
+  aziende.php, la-nostra-storia.php, premi-e-stampa.php, contatti.php,
+  condizioni-di-vendita.php, grazie.php, grazie-richiesta.php, 404.php, sitemap.php
+  checkout.php                ← crea il pagamento Stripe (ricalcola prezzi e consegna)
+  invia.php                   ← riceve i moduli: email + copia in inc/dati/*.csv
+  assets/                     ← style.css, cart.js
+  img/                        ← fotografie
+  inc/                        ← NON accessibile dal web (.htaccess)
+    catalog.json              ← prodotti, prezzi, spedizione, zone   ← si modifica qui
+    config.php                ← dati azienda, DEMO on/off, email che riceve i moduli
+    segreti.esempio.php       ← modello per la chiave Stripe
+    order.php, layout.php, content.php
 ```
 
-## Modificare prodotti e prezzi
+## 1. Mettere online la demo (senza toccare il sito attuale)
 
-1. Apri `catalog.json` e cambia `price_cents` (es. 24,00 € = `2400`), testi, `available` (true/false).
-2. Esegui `python tools/build.py` — stampa un avviso per tutto ciò che manca.
-3. Commit e push: Netlify pubblica in automatico.
+1. Con FTP (FileZilla) o il file manager dell'hosting, carica la cartella `demo/` nella
+   cartella principale del sito (di solito `public_html/` o `www/`).
+2. Apri **https://www.giudittateresa.com/demo/** — il sito vecchio resta dov'è.
+3. In modalità demo (`DEMO = true` in `inc/config.php`) le pagine non vengono indicizzate da
+   Google e in alto compare la fascia "Anteprima".
 
-Il prezzo pagato è **sempre** quello di `catalog.json` letto dal server: chi manomette il browser non può cambiarlo.
+Senza chiave Stripe tutto funziona tranne il pagamento, che mostra "Demo: pagamento non collegato".
+
+## 2. Collegare Stripe
+
+1. Crea l'account su stripe.com (dati aziendali, IBAN).
+2. *Impostazioni → Metodi di pagamento*: attiva Carte, Apple Pay, Google Pay, **PayPal**, Klarna.
+3. *Impostazioni → Email clienti*: ricevuta per i pagamenti riusciti.
+   *Notifiche*: email a ogni pagamento (avviso di nuovo ordine). App Stripe sul telefono.
+4. Copia `inc/segreti.esempio.php` come **`inc/segreti.php`** e incolla la chiave `sk_test_…`.
+   Caricalo via FTP: **non va mai su GitHub** (è già escluso).
+5. Prova un ordine con la carta `4242 4242 4242 4242` (data futura, CVC qualsiasi).
+6. Quando tutto è pronto, sostituisci con la chiave `sk_live_…`.
+
+## 3. Quando la demo diventa il sito ufficiale
+
+1. In `inc/config.php` metti `DEMO = false`.
+2. Sposta il contenuto di `demo/` nella cartella principale (dopo aver salvato il vecchio sito).
+3. Su Google Search Console indica la mappa: `https://www.giudittateresa.com/sitemap.php`.
+4. Aggiungi nel `.htaccess` principale i redirect dai vecchi indirizzi Drupal, per non perdere
+   posizionamento:
+   ```
+   RewriteEngine On
+   RewriteRule ^Chi%20siamo$ /la-nostra-storia.php [R=301,L,NE]
+   RewriteRule ^lavorazione$ /la-nostra-storia.php [R=301,L]
+   RewriteRule ^prodotti$ /shop.php [R=301,L]
+   RewriteRule ^rassegna$ /premi-e-stampa.php [R=301,L]
+   RewriteRule ^blog/ /premi-e-stampa.php [R=301,L]
+   RewriteRule ^contatti$ /contatti.php [R=301,L]
+   ```
+
+## Modificare prodotti, prezzi, zone
+
+Apri `demo/inc/catalog.json` con un editor di testo (es. Notepad++), salva, ricarica via FTP.
+Nessuna compilazione: la modifica è subito online.
+
+- Prezzi in centesimi: 24,00 € = `2400`.
+- `available`: `true` in vendita, `false` nascosto dal carrello.
+- `local_only: true`: dolce fresco, solo consegna in Friuli o ritiro.
+- `local_delivery.zones`: CAP e giorni (0 = domenica … 6 = sabato).
+- `closed_dates`: festivi e ferie.
+
+Il prezzo pagato è **sempre** quello di `catalog.json`, ricalcolato da `checkout.php`:
+chi manomette il browser non può cambiarlo.
 
 ## Prima di andare online (obbligatorio)
 
-- [ ] **Prezzi da confermare**: Gubana 850 g, Strucchi 300 g e 200 g, Mandorlini (non erano visibili su Shopify; ora valori provvisori, segnati `_verificare_prezzo`).
-- [ ] **Ingredienti, allergeni e conservazione** per ogni prodotto (`ingredients`, `allergens`, `shelf`): per il Reg. UE 1169/2011 devono essere visibili *prima* dell'acquisto.
-- [ ] Rileggere descrizioni dei prodotti (specialmente Mandorlini, Gemme, Cuor di Gubana) e le promesse ai clienti: spedizione lun–mer, biglietto scritto a mano, risposta entro 2 giorni, offerta aziende (logo, più indirizzi, fattura elettronica).
-- [ ] **Consegna in Friuli** (`local_delivery` in `catalog.json`): confermare zone, CAP, giorni di consegna, costo (5 €), soglia gratuita (40 €), preavviso (2 giorni). Poi togliere `_verificare_zone`.
-- [ ] **Ritiro in laboratorio** (`pickup`): giorni di apertura (ora lun–sab) e `closed_dates` (festivi e ferie).
-- [ ] **Dolci freschi solo Friuli** (Tronco, Mini Gubana, Focaccia, Torta Silvana): inserire `price_cents`, `weight` e `available: true` per venderli online; finché manca il prezzo compaiono "su prenotazione" con il pulsante per telefonare.
-- [ ] Rileggere la pagina **Bar, alberghi e ristoranti**: le promesse (espositore, cartoncini con QR, assaggio) vanno confermate.
-- [ ] Far verificare `Spedizioni e condizioni di vendita` al consulente.
-- [ ] Aggiornare l'informativa privacy iubenda (nuovi trattamenti: Stripe, Netlify Forms).
-- [ ] Inserire il link Instagram in `tools/build.py` (`BIZ["instagram"]`).
+- [ ] **Prezzi da confermare**: Gubana 850 g, Strucchi 300 g e 200 g, Mandorlini (`_verificare_prezzo`).
+- [ ] **Prezzi da inserire**: Tronco, Mini Gubana, Focaccia, Torta Silvana (finché mancano: "su prenotazione").
+- [ ] **Ingredienti, allergeni, conservazione** per ogni prodotto (Reg. UE 1169/2011).
+- [ ] **Zone, CAP, giorni, costi** della consegna in Friuli; giorni di ritiro; `closed_dates`.
+- [ ] Rileggere le promesse: spedizione lun–mer, biglietto a mano, offerta aziende e ristorazione.
+- [ ] Far verificare le condizioni di vendita al consulente; aggiornare l'informativa iubenda (Stripe, moduli, newsletter).
+- [ ] Link Instagram in `inc/config.php`.
 
-## Messa online (una volta sola)
+## Gestire ordini e richieste
 
-### 1. Stripe
-1. Crea l'account su stripe.com (dati aziendali, IBAN per gli accrediti).
-2. *Impostazioni → Metodi di pagamento*: attiva Carte, Apple Pay, Google Pay, **PayPal**, Klarna.
-3. *Impostazioni → Email clienti*: attiva la ricevuta per i pagamenti riusciti.
-4. *Impostazioni → Notifiche*: attiva l'email per ogni pagamento riuscito (avviso di nuovo ordine). Installa l'app Stripe sul telefono per le notifiche push.
-5. *Sviluppatori → Chiavi API*: copia la chiave segreta (`sk_test_…` per le prove).
+- **Ordini**: pannello o app Stripe → *Pagamenti*. Per ogni ordine: prodotti, indirizzo, telefono,
+  biglietto d'auguri, note e, nei *metadati*, tipo di consegna, data, CAP e zona.
+- **Moduli** (ristorazione, aziende, contatti, newsletter): arrivano per email a `EMAIL_ORDINI`
+  e sono sempre salvati anche in `inc/dati/*.csv` (scaricabili via FTP, si aprono con Excel).
+  Se le email non arrivano, chiedi all'hosting di abilitare la funzione `mail()` di PHP.
+- **Codici sconto per i social**: Stripe → *Catalogo prodotti → Coupon* → codice promozionale.
 
-### 2. Netlify
-1. netlify.com → *Add new site → Import from GitHub* → repository `jellero/giuditta`.
-2. Le impostazioni di build sono già in `netlify.toml`.
-3. *Site configuration → Environment variables*: `STRIPE_SECRET_KEY` = chiave Stripe; `SITE_URL` = `https://www.giudittateresa.com`.
-4. *Forms*: attiva il rilevamento dei form e le notifiche email verso info@giudittateresa.com (richieste aziende e contatti).
-5. *Domain management*: collega `www.giudittateresa.com` e aggiorna i DNS presso il registrar.
+## Provare sul proprio PC
 
-### 3. Prova completa
-Con la chiave `sk_test_…` fai un ordine con la carta di prova `4242 4242 4242 4242` (qualsiasi data futura, qualsiasi CVC). Controlla: ordine nel pannello Stripe, email di conferma, pagina /grazie/. Poi sostituisci con la chiave `sk_live_…`.
-
-## Gestire gli ordini
-
-Pannello o app Stripe → *Pagamenti*: per ogni ordine trovi prodotti, indirizzo di spedizione, telefono,
-testo del biglietto d'auguri, note di consegna e l'eventuale Partita IVA. Rimborsi con un clic.
-
-Nei **metadati** di ogni pagamento c'è il tipo di consegna (`Corriere`, `Consegna diretta Friuli`,
-`Ritiro in laboratorio`), la data scelta, il CAP e la zona: così si prepara il giro di consegna del giorno.
-Controllare che l'indirizzo inserito su Stripe corrisponda al CAP della zona.
-
-I moduli **ristorazione**, **aziende**, **contatti** e **newsletter** arrivano in Netlify → *Forms*
-(con notifica email). Gli iscritti alla newsletter si esportano in CSV da lì.
-
-**Codici sconto per i social**: *Catalogo prodotti → Coupon* → crea il coupon e un *codice promozionale*
-(es. `NATALE10`). Il campo codice compare già nel checkout.
-
-## Anteprima in locale
-
+Con PHP installato:
 ```
-python tools/build.py
-python -m http.server 8080 --directory public
+php -S localhost:8081 -t demo
 ```
-Il pagamento funziona solo su Netlify (o con `netlify dev`), perché serve la funzione serverless.

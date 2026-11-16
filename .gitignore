@@ -1,5 +1,7 @@
-.netlify/
 __pycache__/
 .DS_Store
 Thumbs.db
 .env
+# Chiavi e richieste ricevute: mai su GitHub
+demo/inc/segreti.php
+demo/inc/dati/
