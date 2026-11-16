@@ -27,6 +27,10 @@ Il prezzo pagato è **sempre** quello di `catalog.json` letto dal server: chi ma
 - [ ] **Prezzi da confermare**: Gubana 850 g, Strucchi 300 g e 200 g, Mandorlini (non erano visibili su Shopify; ora valori provvisori, segnati `_verificare_prezzo`).
 - [ ] **Ingredienti, allergeni e conservazione** per ogni prodotto (`ingredients`, `allergens`, `shelf`): per il Reg. UE 1169/2011 devono essere visibili *prima* dell'acquisto.
 - [ ] Rileggere descrizioni dei prodotti (specialmente Mandorlini, Gemme, Cuor di Gubana) e le promesse ai clienti: spedizione lun–mer, biglietto scritto a mano, risposta entro 2 giorni, offerta aziende (logo, più indirizzi, fattura elettronica).
+- [ ] **Consegna in Friuli** (`local_delivery` in `catalog.json`): confermare zone, CAP, giorni di consegna, costo (5 €), soglia gratuita (40 €), preavviso (2 giorni). Poi togliere `_verificare_zone`.
+- [ ] **Ritiro in laboratorio** (`pickup`): giorni di apertura (ora lun–sab) e `closed_dates` (festivi e ferie).
+- [ ] **Dolci freschi solo Friuli** (Tronco, Mini Gubana, Focaccia, Torta Silvana): inserire `price_cents`, `weight` e `available: true` per venderli online; finché manca il prezzo compaiono "su prenotazione" con il pulsante per telefonare.
+- [ ] Rileggere la pagina **Bar, alberghi e ristoranti**: le promesse (espositore, cartoncini con QR, assaggio) vanno confermate.
 - [ ] Far verificare `Spedizioni e condizioni di vendita` al consulente.
 - [ ] Aggiornare l'informativa privacy iubenda (nuovi trattamenti: Stripe, Netlify Forms).
 - [ ] Inserire il link Instagram in `tools/build.py` (`BIZ["instagram"]`).
@@ -54,6 +58,13 @@ Con la chiave `sk_test_…` fai un ordine con la carta di prova `4242 4242 4242 
 
 Pannello o app Stripe → *Pagamenti*: per ogni ordine trovi prodotti, indirizzo di spedizione, telefono,
 testo del biglietto d'auguri, note di consegna e l'eventuale Partita IVA. Rimborsi con un clic.
+
+Nei **metadati** di ogni pagamento c'è il tipo di consegna (`Corriere`, `Consegna diretta Friuli`,
+`Ritiro in laboratorio`), la data scelta, il CAP e la zona: così si prepara il giro di consegna del giorno.
+Controllare che l'indirizzo inserito su Stripe corrisponda al CAP della zona.
+
+I moduli **ristorazione**, **aziende**, **contatti** e **newsletter** arrivano in Netlify → *Forms*
+(con notifica email). Gli iscritti alla newsletter si esportano in CSV da lì.
 
 **Codici sconto per i social**: *Catalogo prodotti → Coupon* → crea il coupon e un *codice promozionale*
 (es. `NATALE10`). Il campo codice compare già nel checkout.

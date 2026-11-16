@@ -20,7 +20,8 @@ export default async (req) => {
 
   let priced;
   try {
-    priced = priceCart(catalog, body && body.items);
+    const d = (body && body.delivery) || {};
+    priced = priceCart(catalog, body && body.items, { mode: d.mode, cap: d.cap, date: d.date });
   } catch (e) {
     if (e instanceof OrderError) return json(400, { error: e.message });
     throw e;

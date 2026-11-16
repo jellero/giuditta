@@ -17,8 +17,19 @@ OUT = ROOT / "public"
 SITE = "https://www.giudittateresa.com"
 CAT = json.loads((ROOT / "catalog.json").read_text(encoding="utf-8"))
 PRODUCTS = CAT["products"]
-ON_REQUEST = CAT["on_request"]
 SHIP = CAT["shipping"]
+LOCAL = CAT.get("local_delivery") if CAT.get("local_delivery", {}).get("enabled") else None
+PICKUP = CAT.get("pickup") if CAT.get("pickup", {}).get("enabled") else None
+GIORNI = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
+
+
+def has_page(p):
+    return isinstance(p.get("price_cents"), int)
+
+
+def days_text(days):
+    names = [GIORNI[d] for d in days]
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " e " + names[-1]
 TODAY = date.today().isoformat()
 
 BIZ = {
@@ -52,6 +63,11 @@ FAQ = [
     ("Quanto costa la spedizione?", f"{SHIP['flat_cents']/100:.0f} € per ordine, gratuita sopra i {SHIP['free_over_cents']/100:.0f} €."),
     ("Quando spedite?", "Spediamo dal lunedì al mercoledì, così i dolci non restano fermi in magazzino nel fine settimana e arrivano freschi come escono dal nostro forno."),
     ("Posso mandarla in regalo con un biglietto?", "Sì. Durante il pagamento puoi indicare un indirizzo di consegna diverso dal tuo e scrivere il testo del biglietto d'auguri: lo scriviamo a mano e lo mettiamo nel pacco."),
+] + ([
+    ("Consegnate voi a domicilio?", f"Sì, in Friuli te la portiamo noi, su prenotazione: {LOCAL['fee_cents']/100:.0f} € a consegna, gratuita sopra i {LOCAL['free_over_cents']/100:.0f} €. Inserisci il CAP nel carrello e scegli il giorno: consegniamo a giri fissi, con almeno {LOCAL['lead_days']} giorni di preavviso."),
+] if LOCAL else []) + ([
+    ("Posso ritirare in laboratorio?", "Certo: scegli \"Ritiro in laboratorio\" nel carrello e il giorno che preferisci. Ti aspettiamo ad Azzida, in Via Algida 43."),
+] if PICKUP else []) + [
     ("Come si conserva la Gubana?", "In un luogo fresco e asciutto, lontano da fonti di calore, nella sua confezione. La data di scadenza è riportata sull'etichetta."),
     ("Come posso pagare?", "Con carta di credito o debito, Apple Pay, Google Pay e PayPal, su pagina sicura Stripe. Non vediamo né conserviamo i dati della tua carta."),
     ("Serve la fattura?", "Durante il pagamento puoi inserire la Partita IVA e i dati di fatturazione. Per ordini aziendali consulta la pagina dedicata alle aziende."),
@@ -69,7 +85,7 @@ def product_url(p):
 
 
 def full_name(p):
-    return f"{p['name']} {p['weight']}"
+    return f"{p['name']} {p.get('weight') or ''}".strip()
 
 
 ICON = {
@@ -85,11 +101,14 @@ ICON = {
 
 NAV = [
     ("/shop/", "I nostri dolci"),
+    ("/consegna-in-friuli/", "Consegna in Friuli"),
     ("/la-nostra-storia/", "La nostra storia"),
-    ("/premi-e-stampa/", "Premi"),
-    ("/aziende/", "Aziende e negozi"),
+    ("/ristorazione/", "Bar e ristoranti"),
+    ("/aziende/", "Aziende"),
     ("/contatti/", "Contatti"),
 ]
+if not LOCAL:
+    NAV = [n for n in NAV if n[0] != "/consegna-in-friuli/"]
 
 ORG_LD = {
     "@context": "https://schema.org",
@@ -108,6 +127,7 @@ ORG_LD = {
                 "postalCode": BIZ["zip"], "addressLocality": BIZ["city"],
                 "addressRegion": BIZ["prov"], "addressCountry": "IT"},
     "sameAs": [u for u in (BIZ["facebook"], BIZ["instagram"]) if u],
+    "areaServed": [{"@type": "Country", "name": "Italia"}, {"@type": "AdministrativeArea", "name": "Friuli Venezia Giulia"}],
 }
 
 
@@ -121,9 +141,16 @@ def layout(path, title, desc, content, image="hero.jpg", extra_ld=(), body_attr=
         f'<a href="{u}"{current if path.startswith(u) else ""}>{e(t)}</a>' for u, t in NAV
     )
     js_data = {
-        "products": [{k: p.get(k) for k in ("id", "name", "weight", "pack", "price_cents", "image", "available")} for p in PRODUCTS],
+        "products": [{k: p.get(k) for k in ("id", "name", "weight", "pack", "price_cents", "image", "available", "local_only")}
+                     for p in PRODUCTS if p["available"] and has_page(p)],
         "shipping": {k: SHIP[k] for k in ("flat_cents", "free_over_cents")},
+        "local": {**{k: LOCAL[k] for k in ("fee_cents", "free_over_cents", "lead_days", "max_days")},
+                  "zones": [{k: z[k] for k in ("id", "name", "days", "caps")} for z in LOCAL["zones"]]} if LOCAL else None,
+        "pickup": {k: PICKUP[k] for k in ("days", "lead_days", "max_days")} if PICKUP else None,
+        "closed_dates": CAT.get("closed_dates", []),
     }
+    topbar = (f'<a href="/consegna-in-friuli/"><strong>Novità:</strong> in Friuli te la portiamo noi, su prenotazione →</a>' if LOCAL
+              else f"Spedizione <strong>gratuita</strong> sopra i {SHIP['free_over_cents']//100} € · Fatta a mano ad Azzida, Valli del Natisone")
     lds = "".join(ld(x) for x in (ORG_LD, *extra_ld))
     social = "".join(
         f'<a href="{u}" rel="noopener" aria-label="{n}">{ICON[i]}</a>'
@@ -157,7 +184,7 @@ def layout(path, title, desc, content, image="hero.jpg", extra_ld=(), body_attr=
 </head>
 <body{(' ' + body_attr) if body_attr else ''}>
 <a class="skip" href="#main">Vai al contenuto</a>
-<div class="topbar">Spedizione <strong>gratuita</strong> sopra i {SHIP['free_over_cents']//100} € · Fatta a mano ad Azzida, Valli del Natisone</div>
+<div class="topbar">{topbar}</div>
 <header class="header">
   <div class="wrap">
     <button class="menu-btn" aria-label="Menu" aria-expanded="false">{ICON['menu']}</button>
@@ -176,12 +203,22 @@ def layout(path, title, desc, content, image="hero.jpg", extra_ld=(), body_attr=
         <img class="footer-logo" src="/img/logo.png" alt="Giuditta Teresa" width="309" height="80" loading="lazy">
         <p>La Gubana delle Valli del Natisone, fatta a mano dalla nostra famiglia dal 1981.</p>
         <div class="social">{social}</div>
+        <form name="newsletter" method="POST" action="/grazie-richiesta/" data-netlify="true" netlify-honeypot="sito-web" style="margin-top:22px">
+          <input type="hidden" name="form-name" value="newsletter">
+          <p class="hp"><label>Non compilare: <input name="sito-web"></label></p>
+          <h4 style="margin-bottom:6px">Le nostre novità</h4>
+          <span class="small" style="color:#b8a88f">Poche email all'anno: Natale, Pasqua e i dolci di stagione.</span>
+          <div class="newsletter"><input type="email" name="email" required placeholder="La tua email" aria-label="Email"><button class="btn btn-sm btn-light" type="submit">Iscriviti</button></div>
+          <label class="newsletter-consent"><input type="checkbox" name="consenso" required> <span>Acconsento a ricevere le email di Giuditta Teresa (<a href="https://www.iubenda.com/privacy-policy/21456511" rel="noopener">privacy</a>).</span></label>
+        </form>
       </div>
       <div>
         <h4>Negozio</h4>
         <ul>
           <li><a href="/shop/">Tutti i dolci</a></li>
           <li><a href="/prodotti/gubana-1000/">La Gubana</a></li>
+          {'<li><a href="/consegna-in-friuli/">Consegna in Friuli</a></li>' if LOCAL else ''}
+          <li><a href="/ristorazione/">Bar, alberghi e ristoranti</a></li>
           <li><a href="/aziende/">Regali aziendali</a></li>
           <li><a href="/aziende/#rivenditori">Rivenditori</a></li>
         </ul>
@@ -217,9 +254,11 @@ def layout(path, title, desc, content, image="hero.jpg", extra_ld=(), body_attr=
   <div class="drawer-head"><h2>Il tuo carrello</h2><button class="drawer-close" aria-label="Chiudi">×</button></div>
   <div class="drawer-body"></div>
   <div class="drawer-foot" hidden>
+    <div class="delivery"></div>
     <div class="ship-bar"></div>
-    <div class="totals"><span>Subtotale</span><span class="js-subtotal"></span></div>
-    <div class="totals small"><span>Spedizione</span><span class="js-shipping"></span></div>
+    <div class="totals small"><span>Subtotale</span><span class="js-subtotal"></span></div>
+    <div class="totals small"><span class="js-shipping-label">Spedizione</span><span class="js-shipping"></span></div>
+    <div class="totals grand"><span>Totale</span><b class="js-total"></b></div>
     <label class="terms"><input type="checkbox" id="accept-terms"> <span>Ho letto e accetto le <a href="/condizioni-di-vendita/" target="_blank">condizioni di vendita</a>.</span></label>
     <button class="btn btn-block" id="checkout-btn">Vai al pagamento sicuro</button>
     <div class="cart-error" role="alert"></div>
@@ -236,30 +275,50 @@ def layout(path, title, desc, content, image="hero.jpg", extra_ld=(), body_attr=
 # ---------- Componenti ----------
 
 def product_card(p, heading="h3"):
-    badge = f'<span class="badge">{e(p["badge"])}</span>' if p.get("badge") else (
-        f'<span class="badge">{e(p["seasonal"])}</span>' if p.get("seasonal") else "")
-    meta = " · ".join(x for x in (p.get("subtitle"), p["weight"], p.get("pack")) if x)
-    if p["available"]:
+    if p.get("local_only"):
+        badge = '<span class="badge badge-local">Solo in Friuli</span>'
+    elif p.get("badge") or p.get("seasonal"):
+        badge = f'<span class="badge">{e(p.get("badge") or p["seasonal"])}</span>'
+    else:
+        badge = ""
+    meta = " · ".join(x for x in (p.get("subtitle"), p.get("weight"), p.get("pack")) if x)
+    sellable = p["available"] and has_page(p)
+    if sellable:
         cta = f'<button class="btn btn-sm" data-add="{p["id"]}">Aggiungi</button>'
+        price = f'<span class="price">{eur(p["price_cents"])}</span>'
+    elif p.get("local_only"):
+        cta = f'<a class="btn btn-sm btn-ghost" href="tel:{BIZ["phone"].replace(" ", "")}">Prenota</a>'
+        price = '<span class="muted small">Su prenotazione</span>'
     else:
         cta = '<span class="muted small">Non disponibile ora</span>'
+        price = f'<span class="price">{eur(p["price_cents"])}</span>' if has_page(p) else ""
+    title = f'<a href="{product_url(p)}">{e(p["name"])}</a>' if has_page(p) else e(p["name"])
     return f"""<article class="product">
   <div class="product-img">{badge}<img src="/img/{p['image']}" alt="{e(full_name(p))} Giuditta Teresa" width="855" height="570" loading="lazy"></div>
   <div class="product-body">
-    <{heading}><a href="{product_url(p)}">{e(p['name'])}</a></{heading}>
+    <{heading}>{title}</{heading}>
     <div class="product-meta">{e(meta)}</div>
     <p class="product-short">{e(p['short'])}</p>
-    <div class="product-foot"><span class="price">{eur(p['price_cents'])}</span>{cta}</div>
+    <div class="product-foot">{price}{cta}</div>
   </div>
 </article>"""
 
 
-def request_items():
-    return "".join(
-        f"""<div class="request-item"><img src="/img/{r['image']}" alt="{e(r['name'])}" width="855" height="570" loading="lazy">
-<h3>{e(r['name'])}</h3><p>{e(r['short'])}</p></div>"""
-        for r in ON_REQUEST
+def national():
+    return [p for p in PRODUCTS if not p.get("local_only")]
+
+
+def fresh():
+    return [p for p in PRODUCTS if p.get("local_only")]
+
+
+def zones_table():
+    rows = "".join(
+        f"<tr><td><b>{e(z['name'])}</b><small>{e(z['places'])}</small></td><td>{e(days_text(z['days']).capitalize())}</td>"
+        f"<td>{e(', '.join(z['caps']))}</td></tr>"
+        for z in LOCAL["zones"]
     )
+    return f'<table class="zones"><thead><tr><th>Zona</th><th>Giorno di consegna</th><th>CAP</th></tr></thead><tbody>{rows}</tbody></table>'
 
 
 def awards_html(items):
@@ -293,7 +352,7 @@ STEPS = f"""<div class="steps">
 # ---------- Pagine ----------
 
 def page_home():
-    featured = [p for p in PRODUCTS if p.get("featured") and p["available"]][:4]
+    featured = [p for p in PRODUCTS if p.get("featured") and p["available"] and has_page(p)][:4]
     content = f"""
 <section class="hero">
   <img src="/img/hero.jpg" alt="Gubana e Strucchi Giuditta Teresa sulla tavola" width="1600" height="890" fetchpriority="high">
@@ -313,7 +372,7 @@ def page_home():
     <li>{ICON['award']}<span><b>Primo premio</b>Gubana Day 2012 e 2016</span></li>
     <li>{ICON['hand']}<span><b>Fatta a mano</b>Un dolce alla volta</span></li>
     <li>{ICON['home']}<span><b>Ricetta di famiglia</b>Dal 1981 ad Azzida</span></li>
-    <li>{ICON['truck']}<span><b>Spedizione gratuita</b>sopra i {SHIP['free_over_cents']//100} €</span></li>
+    {f"<li>{ICON['truck']}<span><b>In Friuli consegniamo noi</b>su prenotazione</span></li>" if LOCAL else f"<li>{ICON['truck']}<span><b>Spedizione gratuita</b>sopra i {SHIP['free_over_cents']//100} €</span></li>"}
   </ul>
 </section>
 
@@ -362,16 +421,18 @@ def page_home():
   </div>
 </section>
 
+{home_local()}
+
 <section class="section section-alt">
   <div class="wrap split reverse">
     <div>
-      <span class="eyebrow">Per aziende e negozi</span>
-      <h2>Un regalo che racconta un territorio</h2>
-      <p class="lead">Regali di Natale per clienti e collaboratori, confezioni per eventi, fornitura per botteghe, enoteche e hotel.</p>
-      <p>Prepariamo ogni ordine a mano, con biglietto personalizzato e spedizione anche a più indirizzi.</p>
-      <a class="btn" href="/aziende/">Richiedi il listino aziende</a>
+      <span class="eyebrow">Bar, alberghi, ristoranti e aziende</span>
+      <h2>Un dolce che racconta un territorio</h2>
+      <p class="lead">Il fine pasto friulano per il vostro menù, la colazione del vostro albergo, i regali di Natale per clienti e collaboratori.</p>
+      <p>In Friuli consegniamo noi, a giorni fissi. Per i regali aziendali spediamo anche a più indirizzi.</p>
+      <div class="hero-actions"><a class="btn" href="/ristorazione/">Per bar e ristoranti</a><a class="btn btn-ghost" href="/aziende/">Regali aziendali</a></div>
     </div>
-    <img src="/img/strucchi-scatola.jpg" alt="Confezione regalo di Strucchi" width="855" height="570" loading="lazy">
+    <img src="/img/tronco.jpg" alt="Tronco di Gubana a fette" width="855" height="570" loading="lazy">
   </div>
 </section>
 
@@ -394,40 +455,47 @@ def page_home():
 
 
 def page_shop():
+    fresh_note = (f'Te li portiamo noi in Friuli ({e(", ".join(z["name"] for z in LOCAL["zones"]))}) oppure li ritiri in laboratorio. '
+                  if LOCAL else "Da ritirare in laboratorio. ")
     content = f"""
 <section class="page-hero"><div class="wrap">
   <span class="eyebrow">Shop</span>
   <h1>I nostri dolci</h1>
-  <p class="lead narrow">Tutto quello che esce dal nostro forno, preparato a mano e spedito in tutta Italia. Spedizione gratuita sopra i {SHIP['free_over_cents']//100} €.</p>
+  <p class="lead narrow">Tutto quello che esce dal nostro forno, preparato a mano. In tutta Italia con corriere, gratis sopra i {SHIP['free_over_cents']//100} €{f"; in Friuli te li portiamo noi, gratis sopra i {LOCAL['free_over_cents']//100} €" if LOCAL else ""}.</p>
 </div></section>
 <section style="padding-bottom:80px"><div class="wrap">
-  <div class="grid">{''.join(product_card(p, "h2") for p in PRODUCTS)}</div>
+  <div class="grid">{''.join(product_card(p, "h2") for p in national())}</div>
 </div></section>
-<section class="section section-alt"><div class="wrap">
+<section class="section section-alt" id="freschi"><div class="wrap">
   <div class="section-head">
-    <span class="eyebrow">Su ordinazione</span>
-    <h2>Da ritirare in laboratorio</h2>
-    <p class="muted">Questi dolci li prepariamo solo su richiesta. Chiamaci al <a href="tel:{BIZ['phone'].replace(' ', '')}">{BIZ['phone_display']}</a> o <a href="/contatti/">scrivici</a> per prenotarli.</p>
+    <span class="eyebrow">Freschi di forno · solo in Friuli</span>
+    <h2>Su prenotazione</h2>
+    <p class="muted">Dolci che non viaggiano con il corriere: li prepariamo su prenotazione. {fresh_note}Per prenotarli chiamaci al <a href="tel:{BIZ['phone'].replace(' ', '')}">{BIZ['phone_display']}</a>{' o aggiungili al carrello quando hanno il prezzo' if LOCAL else ''}.</p>
   </div>
-  <div class="request-list">{request_items()}</div>
+  <div class="grid">{''.join(product_card(p, "h2") for p in fresh())}</div>
 </div></section>
 """
     item_list = {
         "@context": "https://schema.org", "@type": "ItemList",
         "itemListElement": [{"@type": "ListItem", "position": i + 1, "url": SITE + product_url(p), "name": full_name(p)}
-                            for i, p in enumerate(PRODUCTS)],
+                            for i, p in enumerate(x for x in PRODUCTS if has_page(x))],
     }
     return layout("/shop/", "Acquista Gubana online", "Acquista online Gubana, Strucchi, Gemme e Cuor di Gubana fatti a mano ad Azzida. Spedizione in tutta Italia, gratuita sopra 120 €.",
                   content, extra_ld=[item_list])
 
 
 def page_product(p):
-    others = [o for o in PRODUCTS if o["id"] != p["id"] and o["available"]][:4]
-    notes = [
-        f"Spedizione {eur(SHIP['flat_cents'])}, gratuita sopra {eur(SHIP['free_over_cents'])}",
-        "Spediamo dal lunedì al mercoledì, per farla arrivare fresca",
-        "Puoi aggiungere un biglietto d'auguri al pagamento",
-    ]
+    others = [o for o in PRODUCTS if o["id"] != p["id"] and o["available"] and has_page(o)][:4]
+    if p.get("local_only"):
+        notes = ["Dolce fresco: solo consegna diretta in Friuli o ritiro in laboratorio"]
+    else:
+        notes = [f"Corriere in tutta Italia {eur(SHIP['flat_cents'])}, gratis sopra {eur(SHIP['free_over_cents'])}",
+                 "Spediamo dal lunedì al mercoledì, per farla arrivare fresca"]
+    if LOCAL:
+        notes.append(f"In Friuli te la portiamo noi: {eur(LOCAL['fee_cents'])}, gratis sopra {eur(LOCAL['free_over_cents'])}")
+    if PICKUP:
+        notes.append("Ritiro gratuito nel nostro laboratorio di Azzida")
+    notes.append("Puoi aggiungere un biglietto d'auguri al pagamento")
     if p.get("seasonal"):
         notes.insert(0, f"Dolce di stagione: {p['seasonal']}")
     sections = [("Descrizione", p["description"]), ("Come gustarla", p.get("serve", ""))]
@@ -663,6 +731,171 @@ def page_simple(path, title, desc, inner, body_attr="", noindex=True):
     return layout(path, title, desc, f'<section class="section"><div class="wrap narrow center">{inner}</div></section>', body_attr=body_attr, noindex=noindex)
 
 
+def cap_checker(input_id="cap-input"):
+    return f"""<form class="cap-check" onsubmit="return false">
+  <label class="sr" for="{input_id}">Il tuo CAP</label>
+  <input id="{input_id}" inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="Il tuo CAP, es. 33043">
+  <button class="btn" type="button" data-cap-check="{input_id}">Verifica</button>
+</form>
+<div class="cap-result" id="{input_id}-result" aria-live="polite"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {{
+  var inp = document.getElementById("{input_id}"), out = document.getElementById("{input_id}-result");
+  function check() {{
+    var cap = inp.value.replace(/\\D/g, "").slice(0, 5); inp.value = cap;
+    if (cap.length < 5) {{ out.className = "cap-result"; out.textContent = ""; return; }}
+    var z = window.GTzoneFor(cap);
+    if (!z) {{ out.className = "cap-result"; out.innerHTML = "Per il CAP " + cap + " non abbiamo ancora un giro di consegna: puoi ordinare con il corriere o <a href=\\"/contatti/\\">chiederci</a> se passiamo dalle tue parti."; return; }}
+    var d = window.GTdates(window.GT.local, z.days, 3).map(window.GTfmt);
+    out.className = "cap-result ok";
+    out.innerHTML = "Sì, consegniamo a casa tua! Zona <b>" + z.name + "</b>. Prossime consegne: " + d.join(", ") + '. <a href="/shop/">Scegli i tuoi dolci →</a>';
+  }}
+  inp.addEventListener("input", check);
+  document.querySelector('[data-cap-check="{input_id}"]').addEventListener("click", check);
+}});
+</script>"""
+
+
+def home_local():
+    if not LOCAL:
+        return ""
+    return f"""<section class="section hero-local">
+  <div class="wrap split">
+    <div>
+      <span class="pill">Novità</span>
+      <h2>In Friuli te la portiamo noi</h2>
+      <p class="lead">Da oggi consegniamo personalmente, su prenotazione, a casa tua o in ufficio. Niente corriere: dal nostro forno alla tua tavola.</p>
+      <p>{eur(LOCAL['fee_cents'])} a consegna, gratis sopra {eur(LOCAL['free_over_cents'])}. E in più i dolci freschi che non spediamo.</p>
+      {cap_checker("cap-home")}
+    </div>
+    <img src="/img/focaccia.jpg" alt="Focaccia Giuditta Teresa fresca di forno" width="855" height="570" loading="lazy">
+  </div>
+</section>"""
+
+
+def page_local():
+    steps = f"""<div class="steps">
+  <div class="step"><img src="/img/lab-composizione.jpg" alt="" loading="lazy"><h3>Scegli i dolci</h3><p>Dal nostro shop, compresi i dolci freschi che con il corriere non possiamo mandare.</p></div>
+  <div class="step"><img src="/img/fase-forno.jpg" alt="" loading="lazy"><h3>Prenota il giorno</h3><p>Nel carrello inserisci il CAP e scegli il giorno di consegna, con almeno {LOCAL['lead_days']} giorni di anticipo: prepariamo tutto per te.</p></div>
+  <div class="step"><img src="/img/gubana-1000.jpg" alt="" loading="lazy"><h3>Te la portiamo noi</h3><p>Il giorno della consegna ti chiamiamo per concordare l'orario e arriviamo noi, con i dolci appena fatti.</p></div>
+</div>"""
+    content = f"""
+<section class="page-hero hero-local"><div class="wrap split">
+  <div>
+    <span class="pill">Novità · su prenotazione</span>
+    <h1>In Friuli te la portiamo noi</h1>
+    <p class="lead">Dal nostro forno di Azzida direttamente a casa tua, in ufficio o al tuo locale. Niente corriere, niente magazzini: la consegniamo noi, di persona.</p>
+    {cap_checker()}
+  </div>
+  <img src="/img/hero.jpg" alt="Gubana e Strucchi sulla tavola" width="1400" height="779">
+</div></section>
+
+<section class="section"><div class="wrap">
+  <div class="section-head"><span class="eyebrow">Come funziona</span><h2>Tre passi, e arriva fresca</h2></div>
+  {steps}
+</div></section>
+
+<section class="section section-alt"><div class="wrap">
+  <div class="section-head">
+    <span class="eyebrow">Dove e quando</span>
+    <h2>I nostri giri di consegna</h2>
+    <p class="muted">Consegniamo a giorni fissi per zona: così possiamo garantire puntualità e dolci appena sfornati. Le zone crescono: se la tua non c'è, <a href="/contatti/">scrivici</a>.</p>
+  </div>
+  {zones_table()}
+  <ul class="pdp-notes" style="margin-top:24px">
+    <li>Consegna {eur(LOCAL['fee_cents'])}, <b>gratuita sopra {eur(LOCAL['free_over_cents'])}</b></li>
+    <li>Prenotazione con almeno {LOCAL['lead_days']} giorni di anticipo</li>
+    <li>Ti chiamiamo il giorno della consegna per concordare l'orario</li>
+    {'<li>Preferisci passare tu? Il <b>ritiro in laboratorio</b> ad Azzida è gratuito, ' + days_text(PICKUP['days']) + '</li>' if PICKUP else ''}
+  </ul>
+</div></section>
+
+<section class="section"><div class="wrap">
+  <div class="section-head"><span class="eyebrow">Solo in Friuli</span><h2>I dolci freschi che non spediamo</h2>
+  <p class="muted">Con la consegna diretta o il ritiro puoi avere anche i dolci più delicati, preparati su prenotazione.</p></div>
+  <div class="grid">{''.join(product_card(p) for p in fresh())}</div>
+</div></section>
+
+<section class="section section-dark"><div class="wrap split">
+  <div>
+    <span class="eyebrow">Per bar, alberghi e ristoranti</span>
+    <h2>Consegna settimanale al vostro locale</h2>
+    <p class="lead">Un ordine fisso, lo stesso giorno ogni settimana, con un listino dedicato.</p>
+  </div>
+  <div><a class="btn btn-light" href="/ristorazione/">Scopri l'offerta per la ristorazione</a></div>
+</div></section>
+"""
+    return layout("/consegna-in-friuli/", "Consegna a domicilio in Friuli",
+                  f"Gubana e dolci delle Valli del Natisone consegnati a domicilio in Friuli da noi, su prenotazione: {', '.join(z['name'] for z in LOCAL['zones'])}. Gratis sopra {LOCAL['free_over_cents']//100} €.",
+                  content, image="hero.jpg")
+
+
+def page_horeca():
+    content = f"""
+<section class="page-hero"><div class="wrap split">
+  <div>
+    <span class="eyebrow">Bar · Alberghi · Ristoranti · Agriturismi · Enoteche</span>
+    <h1>Il dolce del territorio, sul vostro menù</h1>
+    <p class="lead">I vostri clienti cercano il Friuli vero. Offrite loro una Gubana artigianale, premiata, fatta a mano nelle Valli del Natisone, e raccontatene la storia.</p>
+    <div class="hero-actions"><a class="btn" href="#richiesta-horeca">Chiedi il listino ristorazione</a><a class="btn btn-ghost" href="tel:{BIZ['phone'].replace(' ', '')}">Chiamaci</a></div>
+  </div>
+  <img src="/img/tronco.jpg" alt="Tronco di Gubana tagliato a fette" width="855" height="570">
+</div></section>
+
+<section class="section section-alt"><div class="wrap">
+  <div class="section-head"><span class="eyebrow">Pochi formati, pensati per voi</span><h2>Cosa vi proponiamo</h2></div>
+  <div class="steps">
+    <div class="step"><img src="/img/tronco.jpg" alt="Tronco di Gubana" loading="lazy"><h3>Ristoranti: il fine pasto friulano</h3><p>Il <b>Tronco di Gubana</b> si taglia a fette regolari, senza sprechi. Servito con un goccio di grappa o slivovitz è il dessert della tradizione, da mettere in carta con il nostro nome.</p></div>
+    <div class="step"><img src="/img/torta-silvana.jpg" alt="Torta Silvana" loading="lazy"><h3>Alberghi: la colazione del territorio</h3><p><b>Torta Silvana</b>, <b>Mini Gubana</b> e Focaccia per il buffet. Su richiesta, un piccolo espositore per vendere le nostre confezioni alla reception.</p></div>
+    <div class="step"><img src="/img/strucchi-scatola.jpg" alt="Strucchi" loading="lazy"><h3>Bar, enoteche, cantine</h3><p><b>Strucchi</b> e <b>Gemme di Gubana</b> da abbinare al caffè o ai vini dolci dei Colli Orientali: Picolit, Ramandolo, Verduzzo.</p></div>
+  </div>
+</div></section>
+
+<section class="section"><div class="wrap split">
+  <div>
+    <span class="eyebrow">Perché conviene</span>
+    <h2>Un prodotto che si racconta da solo</h2>
+    <ul class="pdp-notes">
+      <li><b>Consegna diretta in Friuli</b>, a giorni fissi: niente corriere, dolci appena fatti</li>
+      <li><b>Ordine fisso settimanale</b>: lo stesso giorno, senza doverci pensare</li>
+      <li><b>Listino riservato</b> alla ristorazione, con fattura</li>
+      <li><b>Materiali per la sala</b>: cartoncino con la nostra storia e QR code, perché i vostri ospiti sappiano cosa stanno assaggiando</li>
+      <li>Primo premio al <b>Gubana Day</b>: un argomento in più per i vostri camerieri</li>
+    </ul>
+  </div>
+  <img src="/img/lab-noci.jpg" alt="Pulizia a mano delle noci nel laboratorio" loading="lazy">
+</div></section>
+
+<section class="section section-alt" id="richiesta-horeca"><div class="wrap narrow">
+  <div class="section-head"><h2>Chiedi il listino ristorazione</h2><p class="muted">Vi rispondiamo personalmente. Se volete, passiamo noi a farvi assaggiare.</p></div>
+  <form class="form" name="ristorazione" method="POST" action="/grazie-richiesta/" data-netlify="true" netlify-honeypot="sito-web">
+    <input type="hidden" name="form-name" value="ristorazione">
+    <p class="hp"><label>Non compilare: <input name="sito-web"></label></p>
+    <div><label for="h-locale">Nome del locale *</label><input id="h-locale" name="locale" required autocomplete="organization"></div>
+    <div><label for="h-tipo">Tipo di locale *</label>
+      <select id="h-tipo" name="tipo" required><option value="">Scegli…</option><option>Ristorante / trattoria</option><option>Albergo / B&amp;B</option><option>Bar / caffè / pasticceria</option><option>Agriturismo</option><option>Enoteca / cantina</option><option>Altro</option></select></div>
+    <div><label for="h-comune">Comune *</label><input id="h-comune" name="comune" required></div>
+    <div><label for="h-nome">Referente *</label><input id="h-nome" name="nome" required autocomplete="name"></div>
+    <div><label for="h-tel">Telefono *</label><input id="h-tel" name="telefono" type="tel" required autocomplete="tel"></div>
+    <div><label for="h-email">Email *</label><input id="h-email" name="email" type="email" required autocomplete="email"></div>
+    <div class="full"><label>Cosa vi interessa</label>
+      <label class="check"><input type="checkbox" name="interesse" value="Tronco di Gubana (fine pasto)"> Tronco di Gubana per il fine pasto</label>
+      <label class="check"><input type="checkbox" name="interesse" value="Colazione"> Torta Silvana, Mini Gubana, Focaccia per la colazione</label>
+      <label class="check"><input type="checkbox" name="interesse" value="Strucchi e Gemme"> Strucchi e Gemme di Gubana</label>
+      <label class="check"><input type="checkbox" name="interesse" value="Confezioni da rivendere"> Confezioni da rivendere ai clienti</label></div>
+    <div class="full"><label for="h-freq">Frequenza</label>
+      <select id="h-freq" name="frequenza"><option>Ordine fisso settimanale</option><option>Ogni due settimane</option><option>Solo per eventi o stagioni</option><option>Da valutare</option></select></div>
+    <div class="full"><label for="h-msg">Note</label><textarea id="h-msg" name="messaggio" placeholder="Coperti, stagionalità, giorni di chiusura…"></textarea></div>
+    <label class="check full"><input type="checkbox" name="privacy" required> <span>Acconsento al trattamento dei dati per ricevere una risposta, secondo l'<a href="https://www.iubenda.com/privacy-policy/21456511" target="_blank" rel="noopener">informativa privacy</a>. *</span></label>
+    <div class="full"><button class="btn" type="submit">Invia richiesta</button></div>
+  </form>
+</div></section>
+"""
+    return layout("/ristorazione/", "Gubana per bar, alberghi e ristoranti in Friuli",
+                  "Gubana artigianale premiata per ristoranti, alberghi, bar, agriturismi ed enoteche in Friuli: consegna diretta settimanale, listino dedicato, materiali per la sala.",
+                  content, image="tronco.jpg")
+
+
 def page_terms():
     content = f"""
 <section class="page-hero"><div class="wrap prose">
@@ -686,6 +919,17 @@ def page_terms():
     <li>Spediamo dal lunedì al mercoledì per evitare soste nel fine settimana. Consegna di solito in {SHIP['days_min']}–{SHIP['days_max']} giorni lavorativi dalla spedizione.</li>
     <li>Nei periodi di Natale e Pasqua i tempi possono allungarsi: ti consigliamo di ordinare con anticipo.</li>
   </ul>
+{f'''
+  <h2>Consegna diretta in Friuli</h2>
+  <ul>
+    <li>Nelle zone indicate nella pagina <a href="/consegna-in-friuli/">Consegna in Friuli</a> consegniamo personalmente, su prenotazione, nel giorno scelto al momento dell'ordine.</li>
+    <li>Costo: {eur(LOCAL['fee_cents'])} per consegna, gratuita per ordini da {eur(LOCAL['free_over_cents'])} in su. Prenotazione con almeno {LOCAL['lead_days']} giorni di anticipo.</li>
+    <li>L'indirizzo di consegna deve corrispondere al CAP indicato nel carrello. Il giorno della consegna ti contattiamo per concordare l'orario; se non sei raggiungibile, concordiamo una nuova data.</li>
+    <li>I dolci freschi contrassegnati "Solo in Friuli" sono disponibili esclusivamente con consegna diretta o ritiro.</li>
+  </ul>''' if LOCAL else ''}
+{f'''
+  <h2>Ritiro in laboratorio</h2>
+  <p>Puoi ritirare gratuitamente il tuo ordine nel nostro laboratorio ad Azzida, Via Algida 43, il giorno scelto ({days_text(PICKUP['days'])}).</p>''' if PICKUP else ''}
 
   <h2>Diritto di recesso</h2>
   <p>Trattandosi di prodotti alimentari deperibili, il diritto di recesso è escluso ai sensi dell'art. 59, comma 1, lett. d) ed e) del Codice del Consumo (D.Lgs. 206/2005).</p>
@@ -723,10 +967,17 @@ def make_favicon():
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     warnings = []
+    if LOCAL and LOCAL.get("_verificare_zone"):
+        warnings.append("Zone, CAP e giorni di consegna in Friuli da confermare (catalog.json → local_delivery)")
     for p in PRODUCTS:
         if p.get("_verificare_prezzo"):
-            warnings.append(f"Prezzo da verificare: {full_name(p)} ({eur(p['price_cents'])})")
+            warnings.append(f"Prezzo da {'inserire' if not has_page(p) else 'verificare'}: {full_name(p)}"
+                            + (f" ({eur(p['price_cents'])})" if has_page(p) else " (ora: su prenotazione telefonica)"))
         if p["available"] and not (p.get("ingredients") and p.get("allergens")):
             warnings.append(f"Ingredienti/allergeni mancanti (obbligatori per legge): {full_name(p)}")
         if not (SRC / "img" / p["image"]).exists():
@@ -746,9 +997,10 @@ def main():
         "aziende/index.html": page_business(),
         "contatti/index.html": page_contacts(),
         "condizioni-di-vendita/index.html": page_terms(),
+        "ristorazione/index.html": page_horeca(),
         "grazie/index.html": page_simple("/grazie/", "Grazie per il tuo ordine", "Ordine ricevuto.",
             f"""<span class="eyebrow">Ordine ricevuto</span><h1>Grazie!</h1>
-<p class="lead">Abbiamo ricevuto il tuo ordine e ti abbiamo inviato una email di conferma. Prepareremo i tuoi dolci a mano e li spediremo al più presto.</p>
+<p class="lead">Abbiamo ricevuto il tuo ordine e ti abbiamo inviato una email di conferma. Prepareremo i tuoi dolci a mano: se hai scelto la consegna diretta ti chiameremo il giorno stabilito per concordare l'orario.</p>
 <p>Per qualsiasi domanda: <a href="mailto:{BIZ['email']}">{BIZ['email']}</a> · {BIZ['phone_display']}</p>
 <p style="margin-top:28px"><a class="btn btn-ghost" href="/">Torna alla home</a></p>""", body_attr="data-clear-cart"),
         "grazie-richiesta/index.html": page_simple("/grazie-richiesta/", "Richiesta inviata", "Richiesta inviata.",
@@ -759,12 +1011,16 @@ def main():
             """<span class="eyebrow">Errore 404</span><h1>Questa pagina non c'è</h1>
 <p class="lead">Forse è stata spostata con il nuovo sito.</p><p><a class="btn" href="/shop/">Vai ai nostri dolci</a></p>"""),
     }
+    if LOCAL:
+        pages["consegna-in-friuli/index.html"] = page_local()
     for p in PRODUCTS:
-        pages[f"prodotti/{p['id']}/index.html"] = page_product(p)
+        if has_page(p):
+            pages[f"prodotti/{p['id']}/index.html"] = page_product(p)
     for rel, text in pages.items():
         write(rel, text)
 
-    indexable = ["/", "/shop/", "/la-nostra-storia/", "/premi-e-stampa/", "/aziende/", "/contatti/", "/condizioni-di-vendita/"] + [product_url(p) for p in PRODUCTS]
+    indexable = ["/", "/shop/", "/la-nostra-storia/", "/premi-e-stampa/", "/aziende/", "/ristorazione/", "/contatti/", "/condizioni-di-vendita/"] \
+        + (["/consegna-in-friuli/"] if LOCAL else []) + [product_url(p) for p in PRODUCTS if has_page(p)]
     sitemap = "".join(f"<url><loc>{SITE}{u}</loc><lastmod>{TODAY}</lastmod></url>" for u in indexable)
     write("sitemap.xml", f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sitemap}</urlset>\n')
     write("robots.txt", f"User-agent: *\nAllow: /\nDisallow: /grazie/\nDisallow: /grazie-richiesta/\n\nSitemap: {SITE}/sitemap.xml\n")

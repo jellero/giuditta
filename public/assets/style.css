@@ -68,7 +68,7 @@ p { margin: 0 0 1em; }
 .brand { font: italic 500 1.65rem/1 var(--serif); color: var(--ink); text-decoration: none; white-space: nowrap; }
 .brand small { display: block; font: 600 .62rem/1 var(--sans); font-style: normal; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft); margin-top: 5px; }
 .nav { display: flex; gap: 26px; margin-left: auto; }
-.nav a { color: var(--ink); text-decoration: none; font-size: .95rem; padding: 6px 0; border-bottom: 1.5px solid transparent; }
+.nav a { white-space: nowrap; color: var(--ink); text-decoration: none; font-size: .95rem; padding: 6px 0; border-bottom: 1.5px solid transparent; }
 .nav a:hover, .nav a[aria-current="page"] { border-color: var(--honey); }
 .cart-btn { position: relative; background: none; border: 0; cursor: pointer; padding: 8px; color: var(--ink); display: flex; }
 .cart-btn svg { width: 26px; height: 26px; }
@@ -77,7 +77,7 @@ p { margin: 0 0 1em; }
 .menu-btn { display: none; background: none; border: 0; padding: 8px; cursor: pointer; color: var(--ink); }
 .menu-btn svg { width: 26px; height: 26px; }
 
-@media (max-width: 880px) {
+@media (max-width: 1080px) {
   .menu-btn { display: flex; }
   .header .wrap { gap: 8px; }
   .brand { margin-right: auto; font-size: 1.4rem; }
@@ -276,3 +276,45 @@ p { margin: 0 0 1em; }
 .prose h2 { font-size: 1.6rem; margin-top: 1.6em; }
 .prose ul { padding-left: 1.2em; }
 .notice { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--honey); padding: 16px 20px; border-radius: var(--radius); font-size: .95rem; }
+
+/* Consegna nel carrello */
+.drawer-foot { max-height: 72vh; overflow-y: auto; }
+.delivery fieldset { border: 0; padding: 0; margin: 0 0 14px; }
+.delivery legend { font-weight: 600; font-size: .9rem; margin-bottom: 8px; padding: 0; }
+.dl-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: var(--radius); margin-bottom: 6px; cursor: pointer; background: var(--paper); }
+.dl-opt:has(input:checked) { border-color: var(--walnut); background: #fff; }
+.dl-opt input { margin-top: 4px; accent-color: var(--walnut); }
+.dl-opt b { display: block; font-size: .9rem; font-weight: 600; }
+.dl-opt small { display: block; font-size: .78rem; color: var(--ink-soft); }
+.dl-panel { padding: 4px 0 10px 32px; }
+.dl-panel input, .dl-panel select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: var(--radius); font: 400 .95rem var(--sans); background: #fff; color: var(--ink); margin-top: 6px; }
+.dl-zone { margin-top: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.totals.grand { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 6px; }
+
+/* Consegna in Friuli */
+.zones { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.zones th, .zones td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: .95rem; }
+.zones th { font: 600 .74rem/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); background: var(--paper-2); }
+.zones td small { display: block; color: var(--ink-soft); margin-top: 4px; }
+@media (max-width: 640px) { .zones thead { display: none; } .zones tr { display: block; border-bottom: 1px solid var(--line); } .zones td { display: block; border: 0; padding: 6px 16px; } .zones td:first-child { padding-top: 14px; } .zones td:last-child { padding-bottom: 14px; } }
+.cap-check { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.cap-check input { flex: 1 1 160px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 999px; font: 500 1.05rem var(--sans); background: var(--card); color: var(--ink); }
+.cap-result { margin-top: 14px; min-height: 1.5em; }
+.cap-result.ok { color: var(--moss); font-weight: 500; }
+.hero-local { background: var(--moss-dark); color: #ece5d3; }
+.hero-local h1 { color: #fff; }
+.hero-local .lead { color: #d8d1bc; }
+.hero-local .cap-check input { background: #fff; }
+.hero-local .cap-result.ok { color: #c7dca4; }
+.hero-local a { color: #f0c977; }
+.pill { display: inline-block; background: var(--honey); color: #fff; font: 600 .72rem/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; padding: 7px 12px; border-radius: 999px; margin-bottom: 18px; }
+.badge-local { background: var(--moss); color: #fff; }
+
+/* Newsletter */
+.newsletter { display: flex; gap: 8px; margin-top: 10px; }
+.newsletter input[type=email] { flex: 1; min-width: 0; padding: 11px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); color: #fff; font: 400 .92rem var(--sans); }
+.newsletter input::placeholder { color: #c9b9a0; }
+.newsletter-consent { display: flex; gap: 8px; font-size: .76rem; color: #b8a88f; margin-top: 8px; align-items: flex-start; }
+.newsletter-consent input { margin-top: 2px; }
+.topbar a { color: #fff; }

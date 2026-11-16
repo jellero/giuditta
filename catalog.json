@@ -1,15 +1,96 @@
 {
   "_nota": "UNICA fonte di verità per prodotti e prezzi. Il checkout legge i prezzi da qui (lato server): il browser non può alterarli. Prezzi in centesimi di euro. Dopo ogni modifica: python tools/build.py",
-
   "shipping": {
     "flat_cents": 1200,
     "free_over_cents": 12000,
-    "countries": ["IT", "SM", "VA"],
+    "countries": [
+      "IT",
+      "SM",
+      "VA"
+    ],
     "label": "Corriere espresso",
     "days_min": 2,
     "days_max": 4
   },
-
+  "_nota_consegna": "Giorni della settimana: 0=domenica, 1=lunedì ... 6=sabato. lead_days = giorni minimi di preavviso. Le zone si riconoscono dal CAP.",
+  "local_delivery": {
+    "enabled": true,
+    "_verificare_zone": true,
+    "fee_cents": 500,
+    "free_over_cents": 4000,
+    "lead_days": 2,
+    "max_days": 45,
+    "zones": [
+      {
+        "id": "valli",
+        "name": "Valli del Natisone e Cividalese",
+        "days": [
+          2,
+          5
+        ],
+        "places": "San Pietro al Natisone, Cividale, Pulfero, San Leonardo, Savogna, Manzano, San Giovanni al Natisone, Remanzacco, Premariacco, Prepotto",
+        "caps": [
+          "33040",
+          "33043",
+          "33044",
+          "33047",
+          "33048",
+          "33049"
+        ]
+      },
+      {
+        "id": "udine",
+        "name": "Udine e dintorni",
+        "days": [
+          4
+        ],
+        "places": "Udine, Tavagnacco, Pasian di Prato, Martignacco, Tricesimo, Buttrio, Pradamano",
+        "caps": [
+          "33100",
+          "33010",
+          "33019",
+          "33035",
+          "33037",
+          "33042",
+          "33050"
+        ]
+      },
+      {
+        "id": "gorizia",
+        "name": "Gorizia e Collio",
+        "days": [
+          4
+        ],
+        "places": "Gorizia, Cormons, Gradisca d'Isonzo e Collio",
+        "caps": [
+          "34170",
+          "34070",
+          "34071",
+          "34072"
+        ]
+      }
+    ]
+  },
+  "pickup": {
+    "enabled": true,
+    "days": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "lead_days": 1,
+    "max_days": 45
+  },
+  "closed_dates": [
+    "2026-12-25",
+    "2026-12-26",
+    "2027-01-01",
+    "2027-01-06",
+    "2027-03-29"
+  ],
   "products": [
     {
       "id": "gubana-1000",
@@ -148,33 +229,79 @@
       "ingredients": "",
       "allergens": "",
       "shelf": ""
-    }
-  ],
-
-  "on_request": [
+    },
     {
       "id": "tronco-di-gubana",
       "name": "Tronco di Gubana",
+      "weight": "",
+      "pack": "Fresco",
+      "price_cents": null,
+      "_verificare_prezzo": true,
       "image": "tronco.jpg",
-      "short": "Tutti gli ingredienti della Gubana tradizionale in un pratico formato a tronco, comodo da affettare."
+      "available": false,
+      "local_only": true,
+      "featured": false,
+      "short": "Tutti gli ingredienti della Gubana tradizionale in un pratico formato a tronco, comodo da affettare.",
+      "description": "Tutti gli ingredienti della Gubana tradizionale in un pratico formato a tronco: fette regolari, comodo da porzionare. Ideale per la ristorazione e per le tavolate.",
+      "serve": "Si taglia a fette regolari: perfetto per il fine pasto, con un distillato.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
     },
     {
       "id": "mini-gubana",
       "name": "Mini Gubana",
+      "weight": "",
+      "pack": "Fresco",
+      "price_cents": null,
+      "_verificare_prezzo": true,
       "image": "mini-gubana.jpg",
-      "short": "La forma della sorella maggiore e il suo cuore di ripieno, in una porzione per due. Per un tè in compagnia."
+      "available": false,
+      "local_only": true,
+      "featured": false,
+      "short": "La forma della sorella maggiore e il suo cuore di ripieno, in una porzione per due. Per un tè in compagnia.",
+      "description": "Deliziosa novità: la mini Gubana mantiene la forma della sorella maggiore e ne custodisce il cuore di ripieno, in una porzione per due. La soluzione ideale per un tè in compagnia.",
+      "serve": "Per due, con il tè o il caffè.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
     },
     {
       "id": "focaccia",
       "name": "Focaccia",
+      "weight": "",
+      "pack": "Fresco",
+      "price_cents": null,
+      "_verificare_prezzo": true,
       "image": "focaccia.jpg",
-      "short": "La morbidezza e la fragranza di un dolce soffice e leggero, adatto a ogni occasione."
+      "available": false,
+      "local_only": true,
+      "featured": false,
+      "short": "La morbidezza e la fragranza di un dolce soffice e leggero, adatto a ogni occasione.",
+      "description": "La morbidezza e la fragranza di un dolce soffice e leggero, adatto a ogni occasione. Fresca di forno, la consegniamo noi.",
+      "serve": "A colazione o a merenda, appena arrivata.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
     },
     {
       "id": "torta-silvana",
       "name": "Torta Silvana",
+      "weight": "",
+      "pack": "Fresco",
+      "price_cents": null,
+      "_verificare_prezzo": true,
       "image": "torta-silvana.jpg",
-      "short": "Nata dalle mani della titolare: una torta morbida e friabile, pensata per la colazione."
+      "available": false,
+      "local_only": true,
+      "featured": false,
+      "short": "Nata dalle mani della titolare: una torta morbida e friabile, pensata per la colazione.",
+      "description": "Dalle mani della titolare nasce questa torta morbida e friabile, pensata e creata per accompagnare la colazione e addolcire il risveglio.",
+      "serve": "A colazione, con il caffellatte.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
     }
-  ]
+  ],
+  "_nota_freschi": "Prodotti con local_only=true: vendibili solo con consegna in Friuli o ritiro. Per metterli in vendita: inserire price_cents e weight, poi available=true."
 }
