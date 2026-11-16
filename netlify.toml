@@ -1,0 +1,71 @@
+# Il sito è già generato in public/ (python tools/build.py): Netlify non deve compilare nulla.
+[build]
+  publish = "public"
+  command = ""
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Sicurezza e cache
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+# Vecchi indirizzi del sito Drupal → nuove pagine (301 = conserva il posizionamento su Google)
+[[redirects]]
+  from = "/Chi%20siamo"
+  to = "/la-nostra-storia/"
+  status = 301
+[[redirects]]
+  from = "/chi%20siamo"
+  to = "/la-nostra-storia/"
+  status = 301
+[[redirects]]
+  from = "/lavorazione"
+  to = "/la-nostra-storia/"
+  status = 301
+[[redirects]]
+  from = "/prodotti"
+  to = "/shop/"
+  status = 301
+[[redirects]]
+  from = "/shop"
+  to = "/shop/"
+  status = 301
+[[redirects]]
+  from = "/rassegna"
+  to = "/premi-e-stampa/"
+  status = 301
+[[redirects]]
+  from = "/blog/*"
+  to = "/premi-e-stampa/"
+  status = 301
+[[redirects]]
+  from = "/testimonial/*"
+  to = "/"
+  status = 301
+[[redirects]]
+  from = "/contatti"
+  to = "/contatti/"
+  status = 301
+[[redirects]]
+  from = "/sites/default/files/*"
+  to = "/"
+  status = 301
+
+# Dominio unico con www
+[[redirects]]
+  from = "https://giudittateresa.com/*"
+  to = "https://www.giudittateresa.com/:splat"
+  status = 301
+  force = true

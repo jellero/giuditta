@@ -1,0 +1,180 @@
+{
+  "_nota": "UNICA fonte di verità per prodotti e prezzi. Il checkout legge i prezzi da qui (lato server): il browser non può alterarli. Prezzi in centesimi di euro. Dopo ogni modifica: python tools/build.py",
+
+  "shipping": {
+    "flat_cents": 1200,
+    "free_over_cents": 12000,
+    "countries": ["IT", "SM", "VA"],
+    "label": "Corriere espresso",
+    "days_min": 2,
+    "days_max": 4
+  },
+
+  "products": [
+    {
+      "id": "gubana-1000",
+      "name": "La Gubana",
+      "subtitle": "La Gubanza grande",
+      "weight": "1000 g",
+      "pack": "Carta o scatola",
+      "price_cents": 2400,
+      "image": "gubana-1000.jpg",
+      "available": true,
+      "featured": true,
+      "badge": "La regina",
+      "short": "La spirale di pasta dolce che custodisce un ripieno abbondante di frutta secca, uva passa e liquore. La Gubana come si fa ad Azzida dal 1981.",
+      "description": "In senso figurato, nelle Valli del Natisone, Gubana sta per fortuna: un dolce così ricco di ingredienti era l'augurio di abbondanza che si portava in tavola nei giorni di festa. La nostra nasce da una ricetta di famiglia che non abbiamo mai cambiato, con un ripieno generoso preparato a mano e bagnato con i liquori secondo la nostra dose segreta. Arrotolata su se stessa, acciambellata nella formella e accarezzata con l'impasto zuccherino prima del forno.",
+      "serve": "Tradizione vuole che si gusti a fette, bagnata con un goccio di grappa o slivovitz. Perfetta anche leggermente intiepidita.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    },
+    {
+      "id": "gubana-850",
+      "name": "La Gubana",
+      "subtitle": "La Gubanza classica",
+      "weight": "850 g",
+      "pack": "Carta",
+      "price_cents": 2000,
+      "_verificare_prezzo": true,
+      "image": "gubana-850.jpg",
+      "available": true,
+      "featured": true,
+      "short": "La stessa Gubana di sempre nel formato per la tavola di famiglia.",
+      "description": "Tutti gli ingredienti e la cura della Gubana grande, in un formato pensato per la tavola di famiglia o per un regalo. Il ripieno, che è il cuore del dolce, è lo stesso: abbondante, profumato, preparato a mano nel nostro laboratorio di Azzida.",
+      "serve": "A fette, con un goccio di grappa o slivovitz, oppure al naturale con il caffè.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    },
+    {
+      "id": "cuor-di-gubana",
+      "name": "Cuor di Gubana",
+      "weight": "450 g",
+      "pack": "Scatola",
+      "price_cents": 1500,
+      "image": "cuor-di-gubana.jpg",
+      "available": true,
+      "featured": true,
+      "short": "Il cuore della Gubana in confezione regalo: tutto il ripieno, in un formato raccolto.",
+      "description": "Per chi ama soprattutto il ripieno: il Cuor di Gubana concentra in un formato più piccolo il sapore pieno della nostra ricetta di famiglia. In scatola, è un regalo che si porta ovunque.",
+      "serve": "Ideale con il tè del pomeriggio o a fine pasto con un distillato.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    },
+    {
+      "id": "gemme-di-gubana",
+      "name": "Gemme di Gubana",
+      "weight": "350 g",
+      "pack": "Sacchetto",
+      "price_cents": 1150,
+      "image": "gemme.jpg",
+      "available": true,
+      "featured": false,
+      "short": "Piccoli bocconi di Gubana, da condividere.",
+      "description": "Tutto il gusto della Gubana in piccoli bocconi, comodi da portare e da offrire. Nel sacchetto, sono il modo più semplice per far assaggiare le Valli del Natisone.",
+      "serve": "Con il caffè, il tè o un bicchiere di vino dolce.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    },
+    {
+      "id": "strucchi-300",
+      "name": "Strucchi",
+      "weight": "300 g",
+      "pack": "Scatola",
+      "price_cents": 1200,
+      "_verificare_prezzo": true,
+      "image": "strucchi-scatola.jpg",
+      "available": true,
+      "featured": true,
+      "short": "I fagottini tipici delle Valli del Natisone, con il ripieno della Gubana.",
+      "description": "Gli Strucchi sono piccoli fagottini di pasta che racchiudono il ripieno della Gubana, poi fritti e spolverati di zucchero. Un dolce antico delle Valli del Natisone, che nel nostro laboratorio prepariamo ancora a mano, uno a uno.",
+      "serve": "Da soli, come pasticcino, o in un vassoio per le feste.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    },
+    {
+      "id": "strucchi-200",
+      "name": "Strucchi",
+      "weight": "200 g",
+      "pack": "Sacchetto",
+      "price_cents": 800,
+      "_verificare_prezzo": true,
+      "image": "strucchi-sacchetto.jpg",
+      "available": true,
+      "featured": false,
+      "short": "Gli Strucchi in sacchetto, per un assaggio.",
+      "description": "Gli stessi Strucchi fatti a mano, nel sacchetto per un assaggio o un pensiero.",
+      "serve": "Come pasticcino, con il caffè.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    },
+    {
+      "id": "mandorlini-250",
+      "name": "Mandorlini",
+      "weight": "250 g",
+      "pack": "Sacchetto",
+      "price_cents": 800,
+      "_verificare_prezzo": true,
+      "image": "mandorlini.jpg",
+      "available": true,
+      "featured": false,
+      "short": "Biscotti alle mandorle, friabili, da tè e da caffè.",
+      "description": "Biscotti alle mandorle preparati nel nostro laboratorio, friabili e profumati: il compagno ideale del tè, del caffè o di un vino da meditazione.",
+      "serve": "Con il tè o con un vino dolce.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    },
+    {
+      "id": "colombana-850",
+      "name": "Colombana",
+      "subtitle": "La Colomba con il cuore di Gubana",
+      "weight": "850 g",
+      "pack": "Carta o scatola",
+      "price_cents": 2400,
+      "image": "colombana.jpg",
+      "available": true,
+      "featured": true,
+      "badge": "Ricetta nostra",
+      "seasonal": "Pasqua",
+      "short": "Inventata da Silvana Chiabai: la forma della Colomba, il ripieno della Gubana.",
+      "description": "Per onorare la tradizione della Gubana anche a Pasqua, Silvana Chiabai ha inventato la Colombana, che riunisce in un solo dolce la Colomba e la Gubana. Il segreto è l'abbondanza del ripieno di frutta secca e uva passa, così ricco da superare la metà del peso del dolce, e il liquore mescolato con delicatezza per non coprire i sapori. Ne ha parlato anche il Corriere della Sera.",
+      "serve": "A fette, al naturale, per la colazione di Pasqua o a fine pasto.",
+      "ingredients": "",
+      "allergens": "",
+      "shelf": ""
+    }
+  ],
+
+  "on_request": [
+    {
+      "id": "tronco-di-gubana",
+      "name": "Tronco di Gubana",
+      "image": "tronco.jpg",
+      "short": "Tutti gli ingredienti della Gubana tradizionale in un pratico formato a tronco, comodo da affettare."
+    },
+    {
+      "id": "mini-gubana",
+      "name": "Mini Gubana",
+      "image": "mini-gubana.jpg",
+      "short": "La forma della sorella maggiore e il suo cuore di ripieno, in una porzione per due. Per un tè in compagnia."
+    },
+    {
+      "id": "focaccia",
+      "name": "Focaccia",
+      "image": "focaccia.jpg",
+      "short": "La morbidezza e la fragranza di un dolce soffice e leggero, adatto a ogni occasione."
+    },
+    {
+      "id": "torta-silvana",
+      "name": "Torta Silvana",
+      "image": "torta-silvana.jpg",
+      "short": "Nata dalle mani della titolare: una torta morbida e friabile, pensata per la colazione."
+    }
+  ]
+}
